@@ -20,4 +20,5 @@ type Report struct
     String() string
 ```
 
-***Example: [cmd/main.go](./cmd/main.go)***
+***Example: [cmd/main.go](./cmd/main.go)***  
+![example virus](./cmd/example.png "example virus")

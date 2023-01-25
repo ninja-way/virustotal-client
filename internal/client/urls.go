@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ninja-way/virustotal-client/internal/responses"
 	"io"
@@ -10,87 +11,102 @@ import (
 	"time"
 )
 
-// TODO: decompose requests
+const (
+	urlScan   = "/url/scan"
+	urlReport = "/url/report"
 
-func (c Client) postUrl(url string) (responses.Scan, error) {
-	requestUrl := c.apiUrl + "/url/scan"
+	paramAPIkey   = "apikey="
+	paramURL      = "&url="
+	paramResource = "&resource="
 
-	payload := strings.NewReader(fmt.Sprintf("apikey=%s&url=%s", c.apiKey, url))
+	postContentType = "application/x-www-form-urlencoded"
 
-	resp, err := c.client.Post(requestUrl, "application/x-www-form-urlencoded", payload)
+	requestLimitExceeded = "request rate limit exceeded"
+)
+
+func (c Client) checkResponseStatus(resp *http.Response) error {
+	// return error if VirusTotal request rate limit exceeded (4/minute, 500/day)
+	if resp.StatusCode == http.StatusNoContent {
+		return fmt.Errorf("%s %s", resp.Request.Method, requestLimitExceeded)
+	}
+	// return error if status not 200
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%s %s %s", resp.Request.Method, resp.Status, resp.Request.URL)
+	}
+	return nil
+}
+
+// postUrl send url at checking
+func (c Client) postUrl(url string) (*responses.Scan, error) {
+	requestUrl := c.apiUrl + urlScan
+	params := strings.NewReader(paramAPIkey + c.apiKey + paramURL + url)
+
+	// send url
+	resp, err := c.client.Post(requestUrl, postContentType, params)
 	if err != nil {
-		return responses.Scan{}, err
+		return &responses.Scan{}, err
 	}
 	defer resp.Body.Close()
 
-	// return error if VirusTotal request rate limit exceeded (4/minute, 500/day)
-	if resp.StatusCode == http.StatusNoContent {
-		return responses.Scan{}, fmt.Errorf("[ERROR] %s %s", resp.Request.Method, "request rate limit exceeded")
-	}
-
-	// return error if status not 200
-	if resp.StatusCode != http.StatusOK {
-		return responses.Scan{}, fmt.Errorf("[ERROR] %s %s %s", resp.Request.Method, resp.Status, url)
+	err = c.checkResponseStatus(resp)
+	if err != nil {
+		return &responses.Scan{}, err
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return responses.Scan{}, err
+		return &responses.Scan{}, err
 	}
 
+	// parse response
 	var scan responses.Scan
 	err = json.Unmarshal(body, &scan)
 	if err != nil {
-		return responses.Scan{}, err
+		return &responses.Scan{}, err
 	}
 
-	// if the response is different from successful
+	// if the response not successful
 	if scan.ResponseCode != responses.OK {
-		return responses.Scan{}, fmt.Errorf("[ERROR] %s", scan.VerboseMsg)
+		return &responses.Scan{}, errors.New(scan.VerboseMsg)
 	}
 
-	return scan, nil
+	return &scan, nil
 }
 
-func (c Client) getUrlReport(scanID string) (responses.Report, error) {
-	requestUrl := c.apiUrl + "/url/report"
+// getUrlReport receives url checking report
+func (c Client) getUrlReport(scanID string) (*responses.Report, error) {
+	requestUrl := c.apiUrl + urlReport
+	params := paramAPIkey + c.apiKey + paramResource + scanID
 
-	payload := fmt.Sprintf("?apikey=%s&resource=%s", c.apiKey, scanID)
-
-	resp, err := c.client.Get(requestUrl + payload)
+	// get report
+	resp, err := c.client.Get(requestUrl + "?" + params)
 	if err != nil {
-		return responses.Report{}, err
+		return &responses.Report{}, err
 	}
 	defer resp.Body.Close()
 
-	// return error if VirusTotal request rate limit exceeded (4/minute, 500/day)
-	if resp.StatusCode == http.StatusNoContent {
-		return responses.Report{}, fmt.Errorf("[ERROR] %s %s", resp.Request.Method, "request rate limit exceeded")
-	}
-
-	// return error if status not 200
-	if resp.StatusCode != http.StatusOK {
-		return responses.Report{}, fmt.Errorf("[ERROR] %s %s %s",
-			resp.Request.Method, resp.Status, resp.Request.URL)
+	err = c.checkResponseStatus(resp)
+	if err != nil {
+		return &responses.Report{}, err
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return responses.Report{}, err
+		return &responses.Report{}, err
 	}
 
 	var report responses.Report
 	err = json.Unmarshal(body, &report)
 	if err != nil {
-		return responses.Report{}, err
+		return &responses.Report{}, err
 	}
 
-	// if the response is different from successful
+	// if the response not successful or checks not yet passed
 	if report.ResponseCode != responses.OK || report.Total == 0 {
-		fmt.Println("not ok", report.VerboseMsg)
+		// send a new request after a timeout
 		time.Sleep(requestTimeout)
 		return c.getUrlReport(scanID)
 	}
 
-	return report, nil
+	return &report, nil
 }

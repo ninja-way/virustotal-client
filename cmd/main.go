@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/ninja-way/virustotal-client/internal/client"
 	"log"
 )
@@ -16,10 +15,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	result, err := vt.ScanUrl("youtube.com")
+	result, err := vt.ScanUrl("amongus.io")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(result)
+	log.Println(result.String())
 }

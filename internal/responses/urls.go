@@ -18,7 +18,7 @@ type Scan struct {
 	VerboseMsg   string `json:"verbose_msg"`
 }
 
-// Report is response received at getting url check info
+// Report is response that contains url check info
 type Report struct {
 	ScanID       string `json:"scan_id"`
 	URL          string `json:"url"`

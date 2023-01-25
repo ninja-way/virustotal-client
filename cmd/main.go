@@ -2,23 +2,30 @@ package main
 
 import (
 	"flag"
-	"github.com/ninja-way/virustotal-client/internal/client"
+	"github.com/ninja-way/virustotal-client/pkg/virustotal"
 	"log"
 )
 
-var APIkey = flag.String("k", "", "API key for authorization")
+var (
+	APIkey = flag.String("k", "", "API key for authorization")
+	URL    = flag.String("u", "", "URL to check")
+)
 
 func main() {
 	flag.Parse()
-	vt, err := client.NewClient(*APIkey)
+
+	// Init client with API key
+	vt, err := virustotal.New(*APIkey)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	result, err := vt.ScanUrl("amongus.io")
+	// Send url to checking
+	report, err := vt.ScanUrl(*URL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println(result.String())
+	// Print readable report
+	log.Println(report.String())
 }

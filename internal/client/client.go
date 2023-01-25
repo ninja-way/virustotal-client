@@ -10,13 +10,14 @@ import (
 
 // Default settings
 const (
-	apiKeyNotSpecified string = "api key not specified"
-	virusTotalAPIUrl   string = "https://www.virustotal.com/vtapi/v2"
-	requestTimeout            = 5 * time.Second
+	virusTotalAPIUrl = "https://www.virustotal.com/vtapi/v2"
+	requestTimeout   = 5 * time.Second
 
-	okMsg         = "[OK]"
-	errorMsg      = "[ERROR]"
-	successSubmit = "successfully submitted for checking, wait for the report!"
+	okMsg              = "[OK]"
+	errorMsg           = "[ERROR]"
+	successSubmit      = "successfully submitted for checking, wait for the report!"
+	apiKeyNotSpecified = "api key not specified"
+	urlNotSpecified    = "url not specified"
 )
 
 // Client is custom VirusTotal client containing api link and api key
@@ -40,6 +41,10 @@ func NewClient(APIkey string) (*Client, error) {
 
 // ScanUrl send url to checking and waits until the report returns
 func (c Client) ScanUrl(url string) (*responses.Report, error) {
+	if url == "" {
+		return nil, fmt.Errorf("%s %s", errorMsg, urlNotSpecified)
+	}
+
 	scanResp, err := c.postUrl(url)
 	if err != nil {
 		return &responses.Report{}, fmt.Errorf("%s %s", errorMsg, err.Error())

@@ -16,5 +16,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(vt.ScanUrl("youtube.com"))
+	result, err := vt.ScanUrl("youtube.com")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(result)
 }

@@ -23,7 +23,7 @@ func (c Client) postUrl(url string) (responses.Scan, error) {
 	}
 	defer resp.Body.Close()
 
-	// return error if virustotal request rate limit exceeded (4/minute, 500/day)
+	// return error if VirusTotal request rate limit exceeded (4/minute, 500/day)
 	if resp.StatusCode == http.StatusNoContent {
 		return responses.Scan{}, fmt.Errorf("[ERROR] %s %s", resp.Request.Method, "request rate limit exceeded")
 	}
@@ -63,7 +63,7 @@ func (c Client) getUrlReport(scanID string) (responses.Report, error) {
 	}
 	defer resp.Body.Close()
 
-	// return error if virustotal request rate limit exceeded (4/minute, 500/day)
+	// return error if VirusTotal request rate limit exceeded (4/minute, 500/day)
 	if resp.StatusCode == http.StatusNoContent {
 		return responses.Report{}, fmt.Errorf("[ERROR] %s %s", resp.Request.Method, "request rate limit exceeded")
 	}
